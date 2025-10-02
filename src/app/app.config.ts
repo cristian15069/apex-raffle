@@ -16,7 +16,7 @@ export const appConfig: ApplicationConfig = {
       projectId: "apex-raffle", 
       appId: "1:524032460881:web:60f959b6a4f83cd8ad5070", 
       storageBucket: "apex-raffle.firebasestorage.app", 
-      apiKey: "AIzaSyDaI8pJFfldvbHsjAySesbphldYT0ZeGtA", 
+      apiKey: "", 
       authDomain: "apex-raffle.firebaseapp.com", 
       messagingSenderId: "524032460881", 
       measurementId: "G-5D9Q0BCB3V" 
