@@ -1,0 +1,32 @@
+<div class="container mx-auto">
+    <h1 class="text-3xl font-bold my-8 text-center">Mis Boletos</h1>
+  
+    <div *ngIf="purchases$ | async as purchases; else loading">
+      <div *ngIf="purchases.length > 0; else noPurchases" class="max-w-4xl mx-auto">
+        <div *ngFor="let purchase of purchases" class="bg-white shadow-md rounded-lg p-6 mb-4 flex items-center justify-between">
+          <div>
+            <p class="text-lg font-semibold text-gray-800">Rifa del Producto: <span class="font-normal">{{ purchase.productId }}</span></p>
+            <p class="text-sm text-gray-600">ID de Compra: {{ purchase.id }}</p>
+            <p class="text-sm text-gray-600">Cantidad de Boletos: {{ purchase.ticketsBought }}</p>
+          </div>
+          <div>
+            <span [ngClass]="{
+              'bg-yellow-200 text-yellow-800': purchase.paymentStatus === 'pending',
+              'bg-green-200 text-green-800': purchase.paymentStatus === 'completed'
+            }" class="px-3 py-1 rounded-full text-sm font-semibold">
+              {{ purchase.paymentStatus === 'pending' ? 'Pago Pendiente' : 'Completado' }}
+            </span>
+          </div>
+        </div>
+      </div>
+  
+      <ng-template #noPurchases>
+        <p class="text-center text-xl text-gray-500 mt-10">Aún no has participado en ninguna rifa. ¡Anímate!</p>
+      </ng-template>
+    </div>
+  
+    <ng-template #loading>
+      <p class="text-center text-xl text-gray-500 mt-10">Cargando tus boletos...</p>
+    </ng-template>
+  </div>
+  

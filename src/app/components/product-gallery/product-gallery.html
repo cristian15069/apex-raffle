@@ -1,0 +1,51 @@
+<div class="container mx-auto p-4">
+  <h1 class="text-3xl font-bold my-8 text-center">Rifas Activas</h1>
+
+  <div *ngIf="products$ | async as products; else loading">
+    
+    <div *ngIf="products.length > 0; else noProducts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <a *ngFor="let product of products" 
+         [routerLink]="['/product', product.id]" 
+         class="block bg-white rounded-lg shadow-lg overflow-hidden transform hover:-translate-y-2 transition-transform duration-300 cursor-pointer">
+
+        <img [src]="product.imageUrl || 'https://placehold.co/600x400/eee/ccc?text=Producto'" 
+             alt="{{ product.name }}" 
+             class="w-full h-56 object-cover">
+
+        <div class="p-6">
+          <h2 class="text-2xl font-bold mb-2 text-gray-800">{{ product.name }}</h2>
+          <p class="text-gray-600 mb-4 h-20 overflow-hidden">{{ product.description }}</p>
+
+          <div class="mb-4">
+            <div class="relative pt-1">
+              <div class="overflow-hidden h-3 mb-2 text-xs flex rounded bg-blue-200">
+                <div [style.width.%]="calculateProgress(product.ticketsSold, product.totalTickets)"
+                     class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500">
+                </div>
+              </div>
+              <p class="text-sm text-gray-500 text-center">{{ product.ticketsSold }} de {{ product.totalTickets }} boletos vendidos</p>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center mt-6">
+            <span class="text-xl font-bold text-blue-600">${{ product.ticketPrice | number:'1.2-2' }} MXN</span>
+            
+            <button class="bg-green-500 text-white font-bold py-2 px-4 rounded-full shadow-md">
+              Ver Detalles
+            </button>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <ng-template #noProducts>
+      <p class="text-center text-xl text-gray-500 mt-10">😢 No hay rifas activas en este momento.</p>
+    </ng-template>
+
+  </div>
+
+  <ng-template #loading>
+    <p class="text-center text-xl text-gray-500 mt-10">Cargando productos...</p>
+  </ng-template>
+</div>
