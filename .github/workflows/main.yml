@@ -1,36 +1,30 @@
-# Nombre del Workflow
 name: Build and Deploy to Firebase
 
-# Disparador: Se ejecuta en cada push a la rama 'main'
 on:
   push:
     branches:
-      - main # Cambia 'main' si usas 'master' u otra rama principal
+      - main 
 
 jobs:
   build_and_deploy:
-    runs-on: ubuntu-latest # Usará una máquina virtual de Ubuntu
+    runs-on: ubuntu-latest
 
     steps:
-      # 1. Clona tu repositorio
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # 2. Configura Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20' # Usa la versión de Node que necesites
+          node-version: '20'
 
-      # 3. Instala las dependencias del proyecto
       - name: Install dependencies
         run: npm install
 
-      # 4. Construye el proyecto de Angular para producción
       - name: Build project
         run: npm run build -- --configuration=production
 
-      # 5. Despliega en Firebase Hosting
+    
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:

@@ -1,47 +1,57 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'; // Se añade RouterModule
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { ProductService } from '../../services/product';
 import { PurchaseService } from '../../services/purchase';
 import { Product } from '../../models/product.model';
-// ✅ Se importa 'catchError'
-import { Observable, of, switchMap, firstValueFrom, catchError } from 'rxjs'; 
+import { Observable, of, switchMap, catchError, combineLatest, map, firstValueFrom } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../services/auth'; 
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  // ✅ Se añade RouterModule para poder usar [routerLink] en el HTML si es necesario
-  imports: [CommonModule, FormsModule, RouterModule], 
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './product-detail.html',
 })
 export class ProductDetailComponent implements OnInit {
   product$: Observable<Product | undefined> | undefined;
+  isOwner$!: Observable<boolean>;
+  
   ticketQuantity = 1;
   isLoading = false;
   errorMessage = '';
 
   private route = inject(ActivatedRoute);
-  private router = inject(Router);
   private productService = inject(ProductService);
   private purchaseService = inject(PurchaseService);
+  private authService = inject(AuthService);
 
   ngOnInit(): void {
     this.product$ = this.route.paramMap.pipe(
       switchMap(params => {
-        const id = params.get('id');
+        const id = paramss.get('id');
         if (!id) {
-          // Si no hay ID, directamente devolvemos undefined
           return of(undefined);
         }
         return this.productService.getProductById(id);
       }),
-      // ✅ MEJORA: Capturamos cualquier error que ocurra al buscar el producto
       catchError(error => {
         console.error('Error al obtener el producto:', error);
         this.errorMessage = 'No se pudo encontrar el producto solicitado.';
-        // Devolvemos 'undefined' para que el HTML pueda mostrar un mensaje de error
-        return of(undefined); 
+        return of(undefined);
+      })
+    );
+
+    this.isOwner$ = combineLatest([
+      this.product$,
+      this.authService.userProfile$ 
+    ]).pipe(
+      map(([product, user]) => {
+        if (!product || !user) {
+          return false; 
+        }
+        return product.adminId === user.uid; 
       })
     );
   }
@@ -67,6 +77,7 @@ export class ProductDetailComponent implements OnInit {
     }
   }
 
+  // MÉTODOS AUXILIARES (sin cambios)
   calculateProgress(ticketsSold: number, totalTickets: number): number {
     if (totalTickets === 0) return 0;
     return (ticketsSold / totalTickets) * 100;

@@ -4,20 +4,17 @@
       <div class="bg-white shadow-xl rounded-2xl overflow-hidden">
         <div class="grid grid-cols-1 lg:grid-cols-2">
           
-          <!-- Imagen -->
           <div class="p-4 flex justify-center items-center bg-gray-100">
             <img [src]="product.imageUrl || 'https://placehold.co/600x400'" 
                  alt="{{ product.name }}" 
                  class="max-w-full max-h-[300px] object-contain rounded-xl shadow-md">
           </div>
   
-          <!-- Información -->
           <div class="p-6 md:p-8 flex flex-col justify-between">
             <div>
               <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-3">{{ product.name }}</h1>
               <p class="text-slate-600 text-base md:text-lg mb-6">{{ product.description }}</p>
     
-              <!-- Progreso -->
               <div class="mb-6">
                 <div class="flex justify-between items-end mb-1">
                   <span class="text-sm font-medium text-slate-700">Progreso de la Rifa</span>
@@ -34,75 +31,54 @@
               </div>
             </div>
   
-            <!-- Compra -->
             <div class="bg-slate-50 border border-slate-200 p-6 rounded-xl shadow-inner">
-              <!-- Precio -->
               <div class="flex justify-between items-center mb-4">
                 <span class="text-base font-medium text-slate-800">Precio por boleto:</span>
                 <span class="text-2xl font-bold text-indigo-600">${{ product.ticketPrice | number:'1.2-2' }} MXN</span>
               </div>
               
-              <!-- Selector de cantidad -->
               <div class="flex items-center justify-between mb-6">
                 <label for="quantity" class="text-base font-medium text-slate-800">Cantidad:</label>
                 <div class="flex items-center gap-4">
-                  <button (click)="decreaseQuantity()" 
-                          class="w-10 h-10 bg-slate-200 text-slate-700 rounded-full font-bold text-xl hover:bg-slate-300 transition duration-200 disabled:opacity-50"
-                          [disabled]="ticketQuantity <= 1">−</button>
-                  
+                  <button (click)="decreaseQuantity()" class="w-10 h-10 bg-slate-200 text-slate-700 rounded-full font-bold text-xl hover:bg-slate-300 transition duration-200 disabled:opacity-50" [disabled]="ticketQuantity <= 1">−</button>
                   <span class="w-16 text-center font-bold text-xl">{{ ticketQuantity }}</span>
-                  
-                  <button (click)="increaseQuantity(product.totalTickets - product.ticketsSold)" 
-                          class="w-10 h-10 bg-slate-200 text-slate-700 rounded-full font-bold text-xl hover:bg-slate-300 transition duration-200 disabled:opacity-50"
-                          [disabled]="ticketQuantity >= (product.totalTickets - product.ticketsSold)">+</button>
+                  <button (click)="increaseQuantity(product.totalTickets - product.ticketsSold)" class="w-10 h-10 bg-slate-200 text-slate-700 rounded-full font-bold text-xl hover:bg-slate-300 transition duration-200 disabled:opacity-50" [disabled]="ticketQuantity >= (product.totalTickets - product.ticketsSold)">+</button>
                 </div>
               </div>
 
-              <!-- Total a pagar -->
               <div class="border-t pt-4 flex justify-between items-center mb-6">
                 <span class="text-lg font-bold text-slate-900">Total a pagar:</span>
-                <span class="text-2xl font-extrabold text-green-600">
-                  ${{ product.ticketPrice * ticketQuantity | number:'1.2-2' }} MXN
-                </span>
+                <span class="text-2xl font-extrabold text-green-600">${{ product.ticketPrice * ticketQuantity | number:'1.2-2' }} MXN</span>
               </div>
               
-              <!-- Botón de compra -->
-              <button (click)="handlePurchase(product)"
-                      [disabled]="isLoading || product.status !== 'active' || (product.totalTickets - product.ticketsSold <= 0)"
-                      class="w-full flex justify-center items-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed transform hover:scale-105">
-                <svg *ngIf="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>
-                  {{ isLoading ? 'Procesando...' : (product.status === 'active' ? 'Proceder a la Compra' : 'Rifa Finalizada') }}
-                </span>
-              </button>
-
-              <!-- Mensaje de error -->
-              <div *ngIf="errorMessage" class="text-red-600 text-sm mt-2 text-center font-medium">
-                {{ errorMessage }}
+              <div *ngIf="isOwner$ | async; else purchaseButtonBlock; let isOwner">
+                <div *ngIf="isOwner" class="text-center bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 rounded-md">
+                  <p class="font-bold">Vista de Administrador</p>
+                  <p class="text-sm">No puedes comprar boletos para tu propia rifa.</p>
+                </div>
               </div>
 
-              <!-- Sin boletos -->
-              <div *ngIf="product.totalTickets - product.ticketsSold <= 0" class="text-red-500 text-sm font-semibold mt-2 text-center">
-                No hay boletos disponibles.
+              <ng-template #purchaseButtonBlock>
+                <button (click)="handlePurchase(product)"
+                        [disabled]="isLoading || product.status !== 'active' || (product.totalTickets - product.ticketsSold <= 0)"
+                        class="w-full flex justify-center items-center bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed transform hover:scale-105">
+                  <svg *ngIf="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span>{{ isLoading ? 'Procesando...' : (product.status === 'active' ? 'Proceder a la Compra' : 'Rifa Finalizada') }}</span>
+                </button>
+
+                <div *ngIf="errorMessage" class="text-red-600 text-sm mt-2 text-center font-medium">{{ errorMessage }}</div>
+                <div *ngIf="product.totalTickets - product.ticketsSold <= 0" class="text-red-500 text-sm font-semibold mt-2 text-center">No hay boletos disponibles.</div>
+              </ng-template>
               </div>
-            </div>
           </div>
         </div>
       </div>
-
     </div>
 
-    <!-- Loading -->
     <ng-template #loading>
       <div class="flex justify-center items-center h-[50vh]">
         <div class="flex flex-col items-center">
-          <svg class="animate-spin h-10 w-10 text-indigo-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-          </svg>
+          <svg class="animate-spin h-10 w-10 text-indigo-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
           <p class="text-xl text-slate-600">Cargando detalles del producto...</p>
         </div>
       </div>
