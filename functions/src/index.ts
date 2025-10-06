@@ -132,57 +132,41 @@ export const paymentWebhook = functions.https.onRequest(
  */
 export const monitorRaffleStatus = functions.firestore
   .document("products/{productId}")
-  .onUpdate(async (change, context) => {
+  .onUpdate(async (change) => {
     if (!db) db = admin.firestore();
 
-    const productBefore = change.before.data();
     const productAfter = change.after.data();
+    const productBefore = change.before.data();
 
     const isComplete = productAfter.ticketsSold >= productAfter.totalTickets;
     const wasActive = productBefore.status === "active";
 
-    // Se evalúa la condición para enviar el correo
     if (isComplete && wasActive) {
-      console.log(`Condición cumplida para '${productAfter.name}'. Procediendo a enviar notificación.`);
       try {
-        // Se actualiza el estado para no volver a enviar correos por este producto
         await change.after.ref.update({ status: "completed" });
-        console.log(`Producto '${productAfter.name}' actualizado a 'completed'.`);
 
         const adminId = productAfter.adminId;
         const userDoc = await db.collection("users").doc(adminId).get();
         const adminEmail = userDoc.data()?.email;
 
         if (adminEmail) {
-          console.log(`Creando documento en 'mail' para enviar a: ${adminEmail}`);
           await db.collection("mail").add({
             to: adminEmail,
             message: {
               subject: `¡La rifa "${productAfter.name}" ha finalizado!`,
-              html: `<p>La rifa para el producto <strong>${productAfter.name}</strong> ha alcanzado su meta.</p>`,
+              html: `
+                <h1>¡Rifa Completada!</h1>
+                <p>La rifa para el producto <strong>${productAfter.name}</strong> ha alcanzado su meta de ${productAfter.totalTickets} boletos.</p>
+                <p>Es hora de realizar el sorteo para encontrar al ganador.</p>
+              `,
             },
           });
-          console.log("Éxito: Documento para el correo creado correctamente.");
-        } else {
-          console.error(`Error: No se encontró el email para el adminId: ${adminId}`);
         }
       } catch (error) {
-        console.error("ERROR: La condición se cumplió, pero ocurrió un fallo al procesar.", error);
+        console.error("Error al procesar la finalización de la rifa:", error);
       }
-    } else {
-      // ✅ Si la condición no se cumple, este bloque nos dirá exactamente por qué.
-      let reason = `Condición NO cumplida para '${productAfter.name}'.`;
-      if (!isComplete) {
-        reason += ` Causa: La meta de boletos no se ha alcanzado (${productAfter.ticketsSold}/${productAfter.totalTickets}).`;
-      }
-      if (!wasActive) {
-        reason += ` Causa: El estado del producto antes del cambio no era 'active', era '${productBefore.status}'.`;
-      }
-      // Usamos console.warn para que sea fácil de ver en los logs
-      console.warn(reason);
     }
   });
-
 /**
  * FUNCIÓN 4: Crear una sesión de pago con Stripe.
  * TIPO: Callable (se llama desde la app usando el SDK de Firebase).

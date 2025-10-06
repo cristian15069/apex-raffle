@@ -30,7 +30,7 @@ export class ProductDetailComponent implements OnInit {
   ngOnInit(): void {
     this.product$ = this.route.paramMap.pipe(
       switchMap(params => {
-        const id = paramss.get('id');
+        const id = params.get('id');
         if (!id) {
           return of(undefined);
         }
