@@ -228,3 +228,103 @@ export const createCheckoutSession = functions.https.onCall(
     return { url: session.url };
   },
 );
+
+export const getSalesData = functions.https.onCall(async (data, context) => {
+  if (!db) db = admin.firestore();
+  await ensureIsAdmin(context);
+
+  const period = data.period || 'day';
+  const now = new Date();
+  let startDate: Date;
+
+  if (period === 'week') {
+    startDate = new Date(now.setDate(now.getDate() - 7));
+  } else if (period === 'month') {
+    startDate = new Date(now.setMonth(now.getMonth() - 1));
+  } else {
+    startDate = new Date(now.setDate(now.getDate() - 1));
+  }
+
+  try {
+    const startTimestamp = admin.firestore.Timestamp.fromDate(startDate);
+
+    const purchasesSnapshot = await db.collection('purchases')
+      .where('paymentStatus', '==', 'completed')
+      .where('createdAt', '>=', startTimestamp)
+      .get();
+    
+    if (purchasesSnapshot.empty) {
+      return { labels: [], data: [] };
+    }
+
+    const salesByPeriod: { [key: string]: number } = {};
+    const productPrices: { [key: string]: number } = {};
+
+    for (const doc of purchasesSnapshot.docs) {
+      const purchase = doc.data();
+      
+      if (!productPrices[purchase.productId]) {
+        const productDoc = await db.collection('products').doc(purchase.productId).get();
+        productPrices[purchase.productId] = productDoc.data()?.ticketPrice || 0;
+      }
+      
+      const ticketPrice = productPrices[purchase.productId];
+      const saleAmount = ticketPrice * purchase.ticketsBought;
+      
+      const dateKey = purchase.createdAt.toDate ? 
+                      purchase.createdAt.toDate().toISOString().split('T')[0] : 
+                      new Date(purchase.createdAt).toISOString().split('T')[0];
+
+      salesByPeriod[dateKey] = (salesByPeriod[dateKey] || 0) + saleAmount;
+    }
+
+    const labels = Object.keys(salesByPeriod).sort();
+    const salesData = labels.map(label => salesByPeriod[label]);
+
+    return { labels, data: salesData };
+
+  } catch (error) {
+    console.error("Error al obtener datos de ventas:", error);
+    throw new functions.https.HttpsError("internal", "No se pudieron procesar los datos de ventas.");
+  }
+});
+
+
+/**
+ * FUNCIÓN 6: Desactivar una rifa.
+ * El admin que creó la rifa puede cambiar su estado a 'inactive'.
+ */
+export const deactivateRaffleProduct = functions.https.onCall(async (data, context) => {
+  if (!db) db = admin.firestore();
+  
+  await ensureIsAdmin(context);
+
+  const productId = data.productId;
+  if (!productId) {
+    throw new functions.https.HttpsError("invalid-argument", "Falta el ID del producto.");
+  }
+
+  try {
+    const productRef = db.collection("products").doc(productId);
+    const productDoc = await productRef.get();
+
+    if (!productDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "El producto no existe.");
+    }
+
+    if (productDoc.data()?.adminId !== context.auth!.uid) {
+      throw new functions.https.HttpsError("permission-denied", "No tienes permiso para modificar esta rifa.");
+    }
+
+    await productRef.update({ status: "inactive" });
+
+    return { success: true, message: "La rifa ha sido desactivada correctamente." };
+
+  } catch (error) {
+    console.error("Error al desactivar la rifa:", error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error; 
+    }
+    throw new functions.https.HttpsError("internal", "Ocurrió un error al desactivar la rifa.");
+  }
+});

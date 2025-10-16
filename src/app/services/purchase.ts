@@ -1,7 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Firestore, addDoc, collection, serverTimestamp, query, where, collectionData } from '@angular/fire/firestore'; 
 import { Functions, httpsCallable } from '@angular/fire/functions';
-import { Auth, authState } from '@angular/fire/auth'; // ✅ 1. Importamos 'Auth' y 'authState'
 import { Observable, from, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators'; 
 import { AuthService } from './auth';
@@ -20,9 +19,9 @@ export interface Purchase {
 })
 export class PurchaseService {
   private firestore: Firestore = inject(Firestore);
-  private authService: AuthService = inject(AuthService);
   private functions: Functions = inject(Functions);
-  private auth: Auth = inject(Auth); // ✅ 2. Inyectamos Auth para el estado reactivo
+  
+  private authService: AuthService = inject(AuthService);
 
   async createPurchase(productId: string, ticketsBought: number): Promise<string> {
     const user = this.authService.currentUserSig(); 
@@ -44,20 +43,20 @@ export class PurchaseService {
   }
 
   /**
-   * ✅ 3. CORRECCIÓN: Este método ahora es completamente reactivo.
-   * Devuelve las compras del usuario actual y se actualiza automáticamente
-   * si el usuario inicia o cierra sesión.
+   * Devuelve las compras del usuario actual de forma reactiva.
    */
   getUserPurchases(): Observable<Purchase[]> {
-    return authState(this.auth).pipe(
+    // ✅ CORRECCIÓN: Usamos el observable 'userProfile$' de nuestro AuthService.
+    //    Es más eficiente y consistente.
+    return this.authService.userProfile$.pipe(
       switchMap(user => {
         if (user) {
-          // Si hay un usuario, hacemos la consulta a Firestore
+          // Si hay un usuario, hacemos la consulta a Firestore.
           const purchasesCollection = collection(this.firestore, 'purchases');
           const q = query(purchasesCollection, where('userId', '==', user.uid));
           return collectionData(q, { idField: 'id' }) as Observable<Purchase[]>;
         } else {
-          // Si no hay usuario, devolvemos un observable con un arreglo vacío
+          // Si no hay usuario, devolvemos un arreglo vacío.
           return of([]);
         }
       })

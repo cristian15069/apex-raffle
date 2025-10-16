@@ -3,89 +3,149 @@
 
     <div class="text-center">
       <h1 class="text-4xl font-extrabold text-gray-800">Dashboard de Administrador</h1>
-      <p class="text-lg text-gray-500 mt-2">Crea y lanza tu próxima gran rifa.</p>
+      <p class="text-lg text-gray-500 mt-2">Gestiona tus rifas de forma centralizada.</p>
     </div>
 
-    <div class="max-w-2xl mx-auto bg-white p-8 md:p-10 rounded-xl shadow-2xl mt-10 border border-gray-100">
-      <h2 class="text-2xl font-bold text-gray-800 mb-8 border-b pb-4">Crear Nueva Rifa</h2>
-      
-      <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
-        <div class="space-y-6">
+    <div class="mt-10 flex justify-center border-b border-gray-200">
+      <div class="flex space-x-2">
+        <button (click)="setView('create')"
+                [ngClass]="{
+                  'bg-indigo-600 text-white shadow-md': activeView === 'create',
+                  'text-gray-500 hover:bg-gray-100': activeView !== 'create'
+                }"
+                class="px-6 py-3 font-semibold rounded-t-lg transition-colors duration-200">
+          Crear Nueva Rifa
+        </button>
+        <button (click)="setView('manage')"
+                [ngClass]="{
+                  'bg-indigo-600 text-white shadow-md': activeView === 'manage',
+                  'text-gray-500 hover:bg-gray-100': activeView !== 'manage'
+                }"
+                class="px-6 py-3 font-semibold rounded-t-lg transition-colors duration-200">
+          Gestionar Rifas
+        </button>
+      </div>
+    </div>
 
-          <div>
-            <label for="name" class="block text-sm font-medium text-gray-600 mb-2">Nombre del Producto</label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 7a.5.5 0 000 1h9a.5.5 0 000-1h-9zM4.5 9a.5.5 0 000 1h11a.5.5 0 000-1h-11zM4 12.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z"/></svg>
-              </span>
-              <input type="text" id="name" formControlName="name" class="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: Consola de Videojuegos X">
-            </div>
-            <div *ngIf="name?.invalid && (name?.dirty || name?.touched)" class="text-red-500 text-xs mt-1 pl-1">El nombre es requerido (mín. 5 caracteres).</div>
-          </div>
-
-          <div>
-            <label for="description" class="block text-sm font-medium text-gray-600 mb-2">Descripción</label>
-            <textarea id="description" formControlName="description" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" rows="4"></textarea>
-            <div *ngIf="description?.invalid && (description?.dirty || description?.touched)" class="text-red-500 text-xs mt-1 pl-1">La descripción es requerida (mín. 10 caracteres).</div>
-          </div>
-
-          <div>
-            <label for="baseCost" class="block text-sm font-medium text-gray-600 mb-2">Costo Base (MXN)</label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">$</span>
-              <input type="number" id="baseCost" formControlName="baseCost" class="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="500">
-            </div>
-            <div *ngIf="baseCost?.invalid && (baseCost?.dirty || baseCost?.touched)" class="text-red-500 text-xs mt-1 pl-1">El costo base debe ser un número mayor a 0.</div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-600 mb-2">Imagen del Producto</label>
-            <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-              <div class="space-y-1 text-center" *ngIf="!imagePreview">
-                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-                <div class="flex text-sm text-gray-600">
-                  <label for="imageFile" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
-                    <span>Selecciona un archivo</span>
-                    <input id="imageFile" name="imageFile" type="file" (change)="onFileSelected($event)" accept="image/*" class="sr-only">
-                  </label>
-                  <p class="pl-1">o arrástralo aquí</p>
-                </div>
-                <p class="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-              </div>
-              <div *ngIf="imagePreview" class="w-full">
-                <img [src]="imagePreview" alt="Previsualización" class="max-h-48 rounded-md mx-auto">
-              </div>
-            </div>
-          </div>
-        </div>
+    <div *ngIf="activeView === 'create'">
+      <div class="max-w-2xl mx-auto bg-white p-8 md:p-10 rounded-b-xl rounded-tr-xl shadow-2xl border border-t-0 border-gray-100">
+        <h2 class="text-2xl font-bold text-gray-800 mb-8 border-b pb-4">Detalles de la Nueva Rifa</h2>
         
-        <div *ngIf="successMessage" class="flex items-center bg-green-50 border border-green-300 text-green-800 px-4 py-3 rounded-lg relative mt-6">
-          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-          <span>{{ successMessage }}</span>
-        </div>
-        <div *ngIf="errorMessage" class="flex items-center bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded-lg relative mt-6">
-          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
-          <span>{{ errorMessage }}</span>
-        </div>
+        <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
+          <div class="space-y-6">
 
-        <div class="mt-8">
-          <button type="submit" [disabled]="productForm.invalid || isLoading" 
-                  class="w-full flex justify-center items-center font-bold text-white py-3 px-4 rounded-lg
-                         bg-gradient-to-r from-indigo-600 to-purple-600
-                         hover:from-indigo-700 hover:to-purple-700
-                         focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500
-                         disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed
-                         transition-all duration-300 transform hover:scale-105 shadow-lg">
-            
-            <svg *ngIf="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            
-            <span>{{ isLoading ? 'Creando...' : 'Crear Rifa' }}</span>
-          </button>
-        </div>
-      </form>
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-600 mb-2">Nombre del Producto</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path d="M5.5 7a.5.5 0 000 1h9a.5.5 0 000-1h-9zM4.5 9a.5.5 0 000 1h11a.5.5 0 000-1h-11zM4 12.5a.5.5 0 01.5-.5h11a.5.5 0 010 1h-11a.5.5 0 01-.5-.5z"/></svg>
+                </span>
+                <input type="text" id="name" formControlName="name" class="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: Consola de Videojuegos X">
+              </div>
+              <div *ngIf="name?.invalid && (name?.dirty || name?.touched)" class="text-red-500 text-xs mt-1 pl-1">El nombre es requerido (mín. 5 caracteres).</div>
+            </div>
+
+            <div>
+              <label for="description" class="block text-sm font-medium text-gray-600 mb-2">Descripción</label>
+              <textarea id="description" formControlName="description" class="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" rows="4"></textarea>
+              <div *ngIf="description?.invalid && (description?.dirty || description?.touched)" class="text-red-500 text-xs mt-1 pl-1">La descripción es requerida (mín. 10 caracteres).</div>
+            </div>
+
+            <div>
+              <label for="baseCost" class="block text-sm font-medium text-gray-600 mb-2">Costo Base (MXN)</label>
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">$</span>
+                <input type="number" id="baseCost" formControlName="baseCost" class="w-full pl-7 pr-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="500">
+              </div>
+              <div *ngIf="baseCost?.invalid && (baseCost?.dirty || baseCost?.touched)" class="text-red-500 text-xs mt-1 pl-1">El costo base debe ser un número mayor a 0.</div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-600 mb-2">Imagen del Producto</label>
+              <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                <div class="space-y-1 text-center" *ngIf="!imagePreview">
+                  <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  <div class="flex text-sm text-gray-600">
+                    <label for="imageFile" class="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                      <span>Selecciona un archivo</span>
+                      <input id="imageFile" name="imageFile" type="file" (change)="onFileSelected($event)" accept="image/*" class="sr-only">
+                    </label>
+                    <p class="pl-1">o arrástralo aquí</p>
+                  </div>
+                  <p class="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                </div>
+                <div *ngIf="imagePreview" class="w-full">
+                  <img [src]="imagePreview" alt="Previsualización" class="max-h-48 rounded-md mx-auto">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div *ngIf="successMessage" class="flex items-center bg-green-50 border border-green-300 text-green-800 px-4 py-3 rounded-lg relative mt-6">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+            <span>{{ successMessage }}</span>
+          </div>
+          <div *ngIf="errorMessage" class="flex items-center bg-red-50 border border-red-300 text-red-800 px-4 py-3 rounded-lg relative mt-6">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>
+            <span>{{ errorMessage }}</span>
+          </div>
+
+          <div class="mt-8">
+            <button type="submit" [disabled]="productForm.invalid || isLoading" 
+                    class="w-full flex justify-center items-center font-bold text-white py-3 px-4 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 shadow-lg">
+              
+              <svg *ngIf="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ isLoading ? 'Creando...' : 'Crear Rifa' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+
+    <div *ngIf="activeView === 'manage'">
+      <div class="max-w-4xl mx-auto bg-white p-8 md:p-10 rounded-b-xl rounded-tl-xl shadow-2xl border border-t-0 border-gray-100">
+        <h2 class="text-2xl font-bold text-gray-800 mb-8">Mis Rifas Creadas</h2>
+        <div *ngIf="adminProducts$ | async as products; else loadingProducts">
+          <div *ngIf="products.length > 0; else noProducts" class="space-y-4">
+            
+            <div *ngFor="let product of products" class="flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm border">
+              <div class="flex items-center space-x-4">
+                <img [src]="product.imageUrl" class="w-16 h-16 rounded-md object-cover">
+                <div>
+                  <p class="font-semibold text-lg text-gray-800">{{ product.name }}</p>
+                  <p class="text-sm text-gray-500">
+                    Estado: 
+                    <span [ngClass]="{
+                      'text-green-600': product.status === 'active', 
+                      'text-yellow-600': product.status === 'completed', 
+                      'text-red-600': product.status === 'inactive'
+                    }" class="font-bold">
+                      {{ product.status | uppercase }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              
+              <button *ngIf="product.status === 'active'" 
+                      (click)="onDeactivate(product.id)"
+                      class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                Dar de Baja
+              </button>
+            </div>
+
+          </div>
+          <ng-template #noProducts>
+            <p class="text-center text-gray-500 py-8">Aún no has creado ninguna rifa.</p>
+          </ng-template>
+        </div>
+        <ng-template #loadingProducts>
+          <p class="text-center text-gray-500 py-8">Cargando tus rifas...</p>
+        </ng-template>
+      </div>
+    </div>
+
   </div>
 </div>
