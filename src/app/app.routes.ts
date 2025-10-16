@@ -9,6 +9,7 @@ import { NotFoundComponent } from './components/not-found/not-found';
 import { ProductDetailComponent } from './components/product-detail/product-detail';
 import { AuthGuard } from '@angular/fire/auth-guard';
 import { TicketsComponent } from './components/tickets/tickets';
+import { SalesChartComponent } from './components/sales-chart/sales-chart';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/gallery', pathMatch: 'full' }, 
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   { path: 'gallery', component: ProductGalleryComponent },
   { path: 'admin', component: AdminDashboardComponent ,canActivate: [AuthGuard]}, 
+  { path: 'grafic', component: SalesChartComponent ,canActivate: [AuthGuard]}, 
   { path: 'tickets', component: TicketsComponent, canActivate: [AuthGuard]},
   { path: 'product/:id', component: ProductDetailComponent },
   

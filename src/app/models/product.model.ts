@@ -8,7 +8,7 @@ export interface Product {
     ticketPrice: number;
     totalTickets: number;
     ticketsSold: number;
-    status: 'active' | 'completed';
+    status: 'active' | 'completed' | 'inactive';
     adminId: string;
     createdAt: any; 
   }

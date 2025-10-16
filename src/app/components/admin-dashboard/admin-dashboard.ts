@@ -1,8 +1,13 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Observable, of } from 'rxjs';
 import { ProductService } from '../../services/product';
 import { StorageService } from '../../services/storage';
+import { AuthService } from '../../services/auth';
+import { Product } from '../../models/product.model';
+
+import { SalesChartComponent } from '../sales-chart/sales-chart';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -10,17 +15,21 @@ import { StorageService } from '../../services/storage';
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './admin-dashboard.html',
 })
-export class AdminDashboardComponent {
+export class AdminDashboardComponent implements OnInit {
+  activeView: 'create' | 'manage' = 'create';
+
   productForm: FormGroup;
   isLoading = false;
   successMessage = '';
   errorMessage = '';
   selectedFile: File | null = null;
   imagePreview: string | ArrayBuffer | null = null;
+  adminProducts$: Observable<Product[]> = of([]);
 
   private fb = inject(FormBuilder);
   private productService = inject(ProductService);
   private storageService = inject(StorageService);
+  private authService = inject(AuthService);
 
   constructor() {
     this.productForm = this.fb.group({
@@ -28,6 +37,18 @@ export class AdminDashboardComponent {
       description: ['', [Validators.required, Validators.minLength(10)]],
       baseCost: [0, [Validators.required, Validators.min(1)]]
     });
+  }
+
+  ngOnInit(): void {
+    const currentUser = this.authService.currentUserSig();
+    if (currentUser) {
+      this.adminProducts$ = this.productService.getProductsByAdmin(currentUser.uid);
+    }
+  }
+
+  // ✅ Método para cambiar de pestaña
+  setView(view: 'create' | 'manage') {
+    this.activeView = view;
   }
 
   get name() { return this.productForm.get('name'); }
@@ -50,11 +71,9 @@ export class AdminDashboardComponent {
       this.errorMessage = 'Por favor, completa todos los campos y selecciona una imagen.';
       return;
     }
-
     this.isLoading = true;
     this.errorMessage = '';
     this.successMessage = '';
-
     try {
       const imageUrl = await this.storageService.uploadFile(this.selectedFile, 'products');
       const productData = { ...this.productForm.value, imageUrl };
@@ -68,6 +87,19 @@ export class AdminDashboardComponent {
       this.errorMessage = error.message || 'Ocurrió un error al crear la rifa.';
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  async onDeactivate(productId: string): Promise<void> {
+    if (!confirm('¿Estás seguro de que quieres dar de baja esta rifa?')) {
+      return;
+    }
+    try {
+      await this.productService.deactivateProduct(productId);
+      alert('La rifa ha sido desactivada correctamente.');
+    } catch (error: any) {
+      console.error('Error al desactivar la rifa:', error);
+      alert(`Error: ${error.message}`);
     }
   }
 }
