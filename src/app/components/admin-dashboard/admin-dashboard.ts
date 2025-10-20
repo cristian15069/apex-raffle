@@ -6,15 +6,15 @@ import { ProductService } from '../../services/product';
 import { StorageService } from '../../services/storage';
 import { AuthService } from '../../services/auth';
 import { Product } from '../../models/product.model';
-
-import { SalesChartComponent } from '../sales-chart/sales-chart';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule , RouterLink],
   templateUrl: './admin-dashboard.html',
 })
+
 export class AdminDashboardComponent implements OnInit {
   activeView: 'create' | 'manage' = 'create';
 
@@ -25,6 +25,7 @@ export class AdminDashboardComponent implements OnInit {
   selectedFile: File | null = null;
   imagePreview: string | ArrayBuffer | null = null;
   adminProducts$: Observable<Product[]> = of([]);
+  isLoadingDraw = false;
 
   private fb = inject(FormBuilder);
   private productService = inject(ProductService);
@@ -46,7 +47,7 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  // ✅ Método para cambiar de pestaña
+  
   setView(view: 'create' | 'manage') {
     this.activeView = view;
   }
@@ -100,6 +101,23 @@ export class AdminDashboardComponent implements OnInit {
     } catch (error: any) {
       console.error('Error al desactivar la rifa:', error);
       alert(`Error: ${error.message}`);
+    }
+  }
+
+  async onDrawWinner(productId: string, productName: string): Promise<void> {
+    if (!confirm(`¿Estás seguro de que quieres realizar el sorteo para "${productName}"? Esta acción es irreversible.`)) {
+      return;
+    }
+    
+    this.isLoadingDraw = true; 
+    try {
+      const result = await this.productService.drawWinner(productId);
+      alert(`¡Sorteo realizado con éxito! ${result.message}`);
+    } catch (error: any) {
+      console.error('Error al realizar el sorteo:', error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      this.isLoadingDraw = false;
     }
   }
 }

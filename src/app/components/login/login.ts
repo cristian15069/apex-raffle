@@ -16,6 +16,8 @@ export class LoginComponent {
   email = '';
   password = '';
   errorMessage = '';
+  passwordVisible = false;
+  isLoading = false;
 
   authService = inject(AuthService);
   router = inject(Router);
@@ -33,6 +35,10 @@ export class LoginComponent {
       this.errorMessage = 'Correo o contraseña incorrectos.';
       console.error('Error de inicio de sesión:', error);
     }
+  }
+
+  togglePasswordVisibility(): void {
+    this.passwordVisible = !this.passwordVisible;
   }
   
 }
