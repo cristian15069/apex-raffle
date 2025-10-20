@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, addDoc, collection, serverTimestamp, query, where, collectionData } from '@angular/fire/firestore'; 
+import { Firestore, addDoc, collection, serverTimestamp, query, where, collectionData, Timestamp, CollectionReference } from '@angular/fire/firestore';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable, from, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators'; 
+import { map, switchMap, catchError, tap } from 'rxjs/operators';
 import { AuthService } from './auth';
 
 export interface Purchase {
@@ -11,7 +11,7 @@ export interface Purchase {
   ticketsBought: number;
   userId: string;
   paymentStatus: 'pending' | 'completed';
-  createdAt: any;
+  createdAt: Timestamp; 
 }
 
 @Injectable({
@@ -20,16 +20,15 @@ export interface Purchase {
 export class PurchaseService {
   private firestore: Firestore = inject(Firestore);
   private functions: Functions = inject(Functions);
-  
   private authService: AuthService = inject(AuthService);
 
   async createPurchase(productId: string, ticketsBought: number): Promise<string> {
-    const user = this.authService.currentUserSig(); 
+    const user = this.authService.currentUserSig();
     if (!user) {
       throw new Error('Usuario no autenticado. Por favor, inicia sesión.');
     }
 
-    const purchasesCollection = collection(this.firestore, 'purchases');
+    const purchasesCollection = collection(this.firestore, 'purchases') as CollectionReference<Omit<Purchase, 'id'>>; 
     const purchaseData = {
       productId,
       ticketsBought,
@@ -38,27 +37,24 @@ export class PurchaseService {
       createdAt: serverTimestamp()
     };
 
-    const docRef = await addDoc(purchasesCollection, purchaseData);
+    const docRef = await addDoc(purchasesCollection, purchaseData as Omit<Purchase, 'id'>);
     return docRef.id;
   }
 
-  /**
-   * Devuelve las compras del usuario actual de forma reactiva.
-   */
   getUserPurchases(): Observable<Purchase[]> {
-    // ✅ CORRECCIÓN: Usamos el observable 'userProfile$' de nuestro AuthService.
-    //    Es más eficiente y consistente.
     return this.authService.userProfile$.pipe(
       switchMap(user => {
-        if (user) {
-          // Si hay un usuario, hacemos la consulta a Firestore.
-          const purchasesCollection = collection(this.firestore, 'purchases');
+        if (user && user.uid) {
+          const purchasesCollection = collection(this.firestore, 'purchases') as CollectionReference<Purchase>;
+          
           const q = query(purchasesCollection, where('userId', '==', user.uid));
-          return collectionData(q, { idField: 'id' }) as Observable<Purchase[]>;
+          return collectionData<Purchase>(q, { idField: 'id' }); 
         } else {
-          // Si no hay usuario, devolvemos un arreglo vacío.
-          return of([]);
+          return of([]); 
         }
+      }),
+      catchError(err => {
+          return of([]); 
       })
     );
   }

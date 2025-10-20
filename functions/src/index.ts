@@ -87,21 +87,31 @@ export const createRaffleProduct = functions.https.onCall(
 export const paymentWebhook = functions.https.onRequest(
   async (request, response) => {
     if (!db) db = admin.firestore();
-    
-    const { purchaseId } = request.body;
-    if (!purchaseId) {
-      response.status(400).send("Falta el ID de la compra.");
-      return;
-    }
+
+    let purchaseId: string | undefined;
 
     try {
+      const eventData = request.body.data?.object;
+      if (eventData && eventData.object === 'checkout.session' && eventData.metadata) {
+        purchaseId = eventData.metadata.purchaseId;
+      }
+
+      if (!purchaseId) {
+        response.status(400).send("Falta el ID de la compra en la metadata.");
+        return;
+      }
+
       const purchaseRef = db.collection("purchases").doc(purchaseId);
+
       await db.runTransaction(async (transaction) => {
         const purchaseDoc = await transaction.get(purchaseRef);
-        if (!purchaseDoc.exists) throw new Error("Compra no encontrada.");
-        
+        if (!purchaseDoc.exists) {
+          throw new Error("Compra no encontrada.");
+        }
         const purchaseData = purchaseDoc.data();
-        if (!purchaseData || purchaseData.paymentStatus === "completed") return;
+        if (!purchaseData || purchaseData.paymentStatus === 'completed') {
+          return;
+        }
 
         transaction.update(purchaseRef, { paymentStatus: "completed" });
         const productRef = db.collection("products").doc(purchaseData.productId);
@@ -109,6 +119,7 @@ export const paymentWebhook = functions.https.onRequest(
           ticketsSold: admin.firestore.FieldValue.increment(purchaseData.ticketsBought),
         });
 
+        console.log(`[Transacción ${purchaseId}] Creando ${purchaseData.ticketsBought} boletos.`);
         for (let i = 0; i < purchaseData.ticketsBought; i++) {
           const ticketRef = db.collection("tickets").doc();
           transaction.set(ticketRef, {
@@ -117,11 +128,12 @@ export const paymentWebhook = functions.https.onRequest(
             purchaseId: purchaseId,
           });
         }
-      });
-      response.status(200).send({ success: true, message: "Pago procesado." });
-    } catch (error) {
-      console.error("Error en el webhook de pago:", error);
-      response.status(500).send("Error interno del servidor.");
+      }); 
+
+      response.status(200).send({ success: true, message: "Pago procesado y boletos creados." });
+
+    } catch (error: any) {
+      response.status(500).send(`Error interno del servidor: ${error.message}`);
     }
   },
 );
@@ -326,5 +338,88 @@ export const deactivateRaffleProduct = functions.https.onCall(async (data, conte
       throw error; 
     }
     throw new functions.https.HttpsError("internal", "Ocurrió un error al desactivar la rifa.");
+  }
+});
+// En functions/src/index.ts
+
+/**
+ * FUNCIÓN 7: Realizar el sorteo de una rifa completada.
+ * Selecciona un ganador al azar entre todos los boletos vendidos.
+ * TIPO: Callable
+ */
+export const drawRaffleWinner = functions.https.onCall(async (data, context) => {
+  if (!db) db = admin.firestore();
+  await ensureIsAdmin(context); 
+
+  const productId = data.productId;
+  if (!productId) {
+    throw new functions.https.HttpsError("invalid-argument", "Falta el ID del producto.");
+  }
+
+  try {
+    const productRef = db.collection("products").doc(productId);
+    const productDoc = await productRef.get();
+    const productData = productDoc.data();
+
+    if (!productDoc.exists) {
+      throw new functions.https.HttpsError("not-found", "La rifa no existe.");
+    }
+    if (productData?.status !== "completed") {
+      throw new functions.https.HttpsError("failed-precondition", "La rifa aún no ha finalizado.");
+    }
+    if (productData?.winnerId) {
+      throw new functions.https.HttpsError("failed-precondition", "El sorteo para esta rifa ya se realizó.");
+    }
+    if (productData?.adminId !== context.auth!.uid) {
+        throw new functions.https.HttpsError("permission-denied", "No eres el administrador de esta rifa.");
+    }
+
+
+    const ticketsSnapshot = await db.collection("tickets")
+                                    .where("productId", "==", productId)
+                                    .get();
+
+    if (ticketsSnapshot.empty) {
+      throw new functions.https.HttpsError("internal", "No se encontraron boletos vendidos para esta rifa.");
+    }
+
+    const ticketEntries: string[] = [];
+    ticketsSnapshot.forEach(doc => {
+      ticketEntries.push(doc.data().userId);
+    });
+
+    const randomIndex = Math.floor(Math.random() * ticketEntries.length);
+    const winnerId = ticketEntries[randomIndex];
+
+    const winnerDoc = await db.collection("users").doc(winnerId).get();
+    const winnerEmail = winnerDoc.data()?.email;
+
+    if (!winnerEmail) {
+      throw new functions.https.HttpsError("internal", "No se pudo encontrar el email del ganador.");
+    }
+
+    await productRef.update({ winnerId: winnerId, status: "drawn" }); 
+
+    await db.collection("mail").add({
+      to: winnerEmail,
+      message: {
+        subject: `¡Felicidades, ganaste la rifa "${productData?.name}"!`,
+        html: `
+          <h1>¡Ganaste!</h1>
+          <p>Nos complace informarte que tu boleto ha sido seleccionado como el ganador de la rifa para el producto: <strong>${productData?.name}</strong>.</p>
+          <p>Pronto nos pondremos en contacto contigo para coordinar la entrega del premio.</p>
+          <p>¡Gracias por participar!</p>
+        `,
+      },
+    });
+
+    return { success: true, message: `Sorteo realizado. El ganador es ${winnerEmail}.` };
+
+  } catch (error) {
+    console.error("Error al realizar el sorteo:", error);
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    throw new functions.https.HttpsError("internal", "Ocurrió un error inesperado durante el sorteo.");
   }
 });

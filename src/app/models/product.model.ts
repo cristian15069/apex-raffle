@@ -8,7 +8,8 @@ export interface Product {
     ticketPrice: number;
     totalTickets: number;
     ticketsSold: number;
-    status: 'active' | 'completed' | 'inactive';
+    status: 'active' | 'completed' | 'inactive' | 'drawn';
     adminId: string;
     createdAt: any; 
+     winnerId?: string;
   }

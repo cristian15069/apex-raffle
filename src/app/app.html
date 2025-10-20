@@ -1,52 +1,74 @@
-<nav class="bg-white shadow-md">
-  <div class="container mx-auto px-6 py-3">
-    <div class="flex items-center justify-between">
-      <div class="text-xl font-semibold text-gray-700">
-        <a routerLink="/" class="text-gray-800 hover:text-gray-700">ApexRaffle</a>
+<nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+ <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+  <div class="flex items-center justify-between h-16">
+
+   <div class="flex-shrink-0">
+    <a routerLink="/" class="text-2xl font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
+     ApexRaffle
+     </a>
+   </div>
+
+   <div class="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+
+    <ng-container *ngIf="authService.currentUserSig() === undefined">
+     <div class="px-3 py-2 text-sm font-medium text-gray-500">Cargando...</div>
+    </ng-container>
+
+    <ng-container *ngIf="authService.currentUserSig() !== undefined">
+
+     <a routerLink="/gallery" routerLinkActive="text-indigo-600 border-indigo-500 font-semibold border-b-2"
+        [routerLinkActiveOptions]="{exact: true}"
+        class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent hover:border-gray-300">
+      Galería
+     </a>
+
+     <ng-container *ngIf="authService.currentUserSig() as user; else guestLinks">
+      <a routerLink="/tickets" routerLinkActive="text-indigo-600 border-indigo-500 font-semibold border-b-2"
+         class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent hover:border-gray-300">
+       Mis Boletos
+      </a>
+
+      <ng-container *ngIf="user.role === 'admin'">
+       <a routerLink="/admin" routerLinkActive="text-indigo-600 border-indigo-500 font-semibold border-b-2"
+          class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent hover:border-gray-300">
+        Dashboard
+       </a>
+       </ng-container>
+
+      <div class="ml-4 flex items-center space-x-4">
+       <span class="text-sm text-gray-600 hidden md:inline">Hola, {{ user.email }}</span>
+       <button (click)="logout()"
+         class="px-3 py-1.5 bg-red-100 text-red-700 rounded-md text-sm font-medium hover:bg-red-200 hover:text-red-800 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+        Cerrar Sesión
+       </button>
       </div>
-      <div class="flex items-center space-x-4">
+     </ng-container>
 
-        <ng-container *ngIf="authService.currentUserSig() !== undefined; else loadingTemplate">
-          
-          <ng-container *ngIf="authService.currentUserSig() as user; else guestView">
-            
-            <a routerLink="/gallery" class="text-gray-700 hover:text-gray-900">Galería</a>
-            <a routerLink="/tickets" class="text-gray-700 hover:text-gray-900">Mis Boletos</a>
-            
-            <a *ngIf="user.role === 'admin'" routerLink="/admin" class="text-gray-700 hover:text-gray-900 font-bold text-blue-600">
-              Panel de Admin
-            </a>
-            <a *ngIf="user.role === 'admin'" routerLink="/grafic" class="text-gray-700 hover:text-gray-900 font-bold text-blue-600">
-              Gráficas de Ventas
-            </a>
+     <ng-template #guestLinks>
+      <a routerLink="/login" routerLinkActive="text-indigo-600 border-indigo-500 font-semibold border-b-2"
+         class="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors border-b-2 border-transparent hover:border-gray-300">
+       Iniciar Sesión
+      </a>
+      <a routerLink="/register"
+         class="ml-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-md text-sm font-medium hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105 shadow-md">
+       Registrarse
+      </a>
+     </ng-template>
 
-            <span class="text-gray-700">|</span>
+    </ng-container>
+   </div>
 
-            <span class="text-gray-700">Hola, {{ user.email }}</span>
-            <button (click)="logout()" class="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600">
-              Cerrar Sesión
-            </button>
-          </ng-container>
+   <div class="sm:hidden flex items-center">
+    <button class="text-gray-500 hover:text-gray-700 focus:outline-none">
+     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+    </button>
+   </div>
 
-          <ng-template #guestView>
-            <a routerLink="/gallery" class="text-gray-700 hover:text-gray-900">Galería</a>
-            <a routerLink="/login" class="text-gray-700 hover:text-gray-900">Iniciar Sesión</a>
-            <a routerLink="/register" class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-              Registrarse
-            </a>
-          </ng-template>
-
-        </ng-container>
-
-        <ng-template #loadingTemplate>
-          <div class="px-3 py-2 text-gray-500">Cargando...</div>
-        </ng-template>
-
-      </div>
-    </div>
   </div>
-</nav>
+ </div>
+
+ </nav>
 
 <main class="p-4">
-  <router-outlet></router-outlet>
+ <router-outlet></router-outlet>
 </main>
