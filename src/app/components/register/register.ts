@@ -31,7 +31,7 @@ export class RegisterComponent {
     }
     try {
       await this.authService.register(this.email, this.password);
-      this.router.navigate(['/gallery']); // Redirigir a la galería después del registro
+      this.router.navigate(['/gallery']); 
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         this.errorMessage = 'Este correo electrónico ya está en uso.';
