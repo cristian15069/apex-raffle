@@ -2,7 +2,6 @@ import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
 import { Stripe } from "stripe";
 
-// --- INICIALIZACIÓN Y VARIABLES GLOBALES ---
 if (admin.apps.length === 0) {
   admin.initializeApp();
 }
@@ -53,9 +52,8 @@ export const createRaffleProduct = functions.https.onCall(
 
 
     const totalGoal = baseCost * 3;
-    const totalTickets = Math.ceil(totalGoal * 0.02 ); // Cantidad de boletos variable
+    const totalTickets = Math.ceil(totalGoal * 0.02 ); 
     const ticketPrice = Math.ceil(totalGoal / totalTickets);
-    // --- FIN DE LA LÓGICA ---
 
     try {
       const productData = {
@@ -245,58 +243,63 @@ export const getSalesData = functions.https.onCall(async (data, context) => {
   if (!db) db = admin.firestore();
   await ensureIsAdmin(context);
 
-  const period = data.period || 'day';
-  const now = new Date();
+  const { period, startDate: startDateString, endDate: endDateString } = data;
   let startDate: Date;
-
-  if (period === 'week') {
-    startDate = new Date(now.setDate(now.getDate() - 7));
-  } else if (period === 'month') {
-    startDate = new Date(now.setMonth(now.getMonth() - 1));
-  } else {
-    startDate = new Date(now.setDate(now.getDate() - 1));
-  }
+  let endDate: Date;
 
   try {
+    if (startDateString && endDateString) {
+      startDate = new Date(startDateString);
+      endDate = new Date(endDateString);
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      const now = new Date();
+      endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
+      if (period === 'week') startDate = new Date(now.setDate(now.getDate() - 7));
+      else if (period === 'month') startDate = new Date(now.setMonth(now.getMonth() - 1));
+      else startDate = new Date(now.setDate(now.getDate() - 1));
+      startDate.setHours(0, 0, 0, 0);
+    }
+
     const startTimestamp = admin.firestore.Timestamp.fromDate(startDate);
+    const endTimestamp = admin.firestore.Timestamp.fromDate(endDate);
 
     const purchasesSnapshot = await db.collection('purchases')
       .where('paymentStatus', '==', 'completed')
       .where('createdAt', '>=', startTimestamp)
+      .where('createdAt', '<=', endTimestamp)
       .get();
-    
-    if (purchasesSnapshot.empty) {
-      return { labels: [], data: [] };
+
+    if (purchasesSnapshot.empty) return { totalEarnings: 0 };
+
+    const productIds = [...new Set(purchasesSnapshot.docs.map(doc => doc.data().productId))];
+    const productPricesCache: { [key: string]: number } = {};
+    const productChunks = [];
+    for (let i = 0; i < productIds.length; i += 30) {
+        productChunks.push(productIds.slice(i, i + 30));
     }
+    const productPromises = productChunks.map(chunk =>
+        db.collection('products').where(admin.firestore.FieldPath.documentId(), 'in', chunk).get()
+    );
+    const productSnapshots = await Promise.all(productPromises);
+    productSnapshots.forEach(snap => {
+        snap.forEach(doc => {
+            productPricesCache[doc.id] = doc.data()?.ticketPrice || 0;
+        });
+    });
 
-    const salesByPeriod: { [key: string]: number } = {};
-    const productPrices: { [key: string]: number } = {};
-
-    for (const doc of purchasesSnapshot.docs) {
+    let totalEarnings = 0;
+    purchasesSnapshot.forEach(doc => {
       const purchase = doc.data();
-      
-      if (!productPrices[purchase.productId]) {
-        const productDoc = await db.collection('products').doc(purchase.productId).get();
-        productPrices[purchase.productId] = productDoc.data()?.ticketPrice || 0;
-      }
-      
-      const ticketPrice = productPrices[purchase.productId];
-      const saleAmount = ticketPrice * purchase.ticketsBought;
-      
-      const dateKey = purchase.createdAt.toDate ? 
-                      purchase.createdAt.toDate().toISOString().split('T')[0] : 
-                      new Date(purchase.createdAt).toISOString().split('T')[0];
+      const price = productPricesCache[purchase.productId] || 0;
+      totalEarnings += price * purchase.ticketsBought;
+    });
 
-      salesByPeriod[dateKey] = (salesByPeriod[dateKey] || 0) + saleAmount;
-    }
-
-    const labels = Object.keys(salesByPeriod).sort();
-    const salesData = labels.map(label => salesByPeriod[label]);
-
-    return { labels, data: salesData };
+    return { totalEarnings: totalEarnings };
 
   } catch (error) {
-    console.error("Error al obtener datos de ventas:", error);
+    console.error(`Error al obtener datos de ventas:`, error);
     throw new functions.https.HttpsError("internal", "No se pudieron procesar los datos de ventas.");
   }
 });
@@ -340,7 +343,6 @@ export const deactivateRaffleProduct = functions.https.onCall(async (data, conte
     throw new functions.https.HttpsError("internal", "Ocurrió un error al desactivar la rifa.");
   }
 });
-// En functions/src/index.ts
 
 /**
  * FUNCIÓN 7: Realizar el sorteo de una rifa completada.

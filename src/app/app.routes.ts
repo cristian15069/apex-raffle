@@ -21,6 +21,5 @@ export const routes: Routes = [
   { path: 'tickets', component: TicketsComponent, canActivate: [AuthGuard]},
   { path: 'product/:id', component: ProductDetailComponent },
   
-  // ✅ MOVIDA AL FINAL: Esta ruta ahora solo se activará si ninguna de las anteriores coincide.
   { path: '**', component: NotFoundComponent } 
 ];

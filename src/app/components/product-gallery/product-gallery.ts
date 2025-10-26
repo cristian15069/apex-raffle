@@ -15,7 +15,6 @@ export class ProductGalleryComponent {
   productService = inject(ProductService);
   products$: Observable<Product[]> = this.productService.getProducts();
 
-  // Función para calcular el progreso de la barra
   calculateProgress(ticketsSold: number, totalTickets: number): number {
     if (totalTickets === 0) return 0;
     return (ticketsSold / totalTickets) * 100;
