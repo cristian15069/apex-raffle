@@ -351,7 +351,7 @@ export const deactivateRaffleProduct = functions.https.onCall(async (data, conte
  */
 export const drawRaffleWinner = functions.https.onCall(async (data, context) => {
   if (!db) db = admin.firestore();
-  await ensureIsAdmin(context); 
+  await ensureIsAdmin(context);
 
   const productId = data.productId;
   if (!productId) {
@@ -363,19 +363,10 @@ export const drawRaffleWinner = functions.https.onCall(async (data, context) => 
     const productDoc = await productRef.get();
     const productData = productDoc.data();
 
-    if (!productDoc.exists) {
-      throw new functions.https.HttpsError("not-found", "La rifa no existe.");
-    }
-    if (productData?.status !== "completed") {
-      throw new functions.https.HttpsError("failed-precondition", "La rifa aún no ha finalizado.");
-    }
-    if (productData?.winnerId) {
-      throw new functions.https.HttpsError("failed-precondition", "El sorteo para esta rifa ya se realizó.");
-    }
-    if (productData?.adminId !== context.auth!.uid) {
-        throw new functions.https.HttpsError("permission-denied", "No eres el administrador de esta rifa.");
-    }
-
+    if (!productDoc.exists) { throw new functions.https.HttpsError("not-found", "La rifa no existe."); }
+    if (productData?.status !== "completed") { throw new functions.https.HttpsError("failed-precondition", "La rifa aún no ha finalizado."); }
+    if (productData?.winnerId) { throw new functions.https.HttpsError("failed-precondition", "Este sorteo ya se realizó."); }
+    if (productData?.adminId !== context.auth!.uid) { throw new functions.https.HttpsError("permission-denied", "No eres el administrador de esta rifa."); }
 
     const ticketsSnapshot = await db.collection("tickets")
                                     .where("productId", "==", productId)
@@ -385,43 +376,42 @@ export const drawRaffleWinner = functions.https.onCall(async (data, context) => 
       throw new functions.https.HttpsError("internal", "No se encontraron boletos vendidos para esta rifa.");
     }
 
-    const ticketEntries: string[] = [];
-    ticketsSnapshot.forEach(doc => {
-      ticketEntries.push(doc.data().userId);
-    });
+    const ticketDocs = ticketsSnapshot.docs;
+    
+    const randomIndex = Math.floor(Math.random() * ticketDocs.length);
+    const winningTicketDoc = ticketDocs[randomIndex];
 
-    const randomIndex = Math.floor(Math.random() * ticketEntries.length);
-    const winnerId = ticketEntries[randomIndex];
+    const winnerId = winningTicketDoc.data().userId;   
+    const winningTicketId = winningTicketDoc.id;
 
-    const winnerDoc = await db.collection("users").doc(winnerId).get();
-    const winnerEmail = winnerDoc.data()?.email;
+    const winnerUserDoc = await db.collection("users").doc(winnerId).get();
+    const winnerData = winnerUserDoc.data();
+    const winnerEmail = winnerData?.email;
+    let winnerDisplayName = winnerData?.name || `Usuario ${winnerId.substring(0, 5)}`;
 
     if (!winnerEmail) {
       throw new functions.https.HttpsError("internal", "No se pudo encontrar el email del ganador.");
     }
 
-    await productRef.update({ winnerId: winnerId, status: "drawn" }); 
-
+    await productRef.update({ 
+      status: "drawn",
+      winnerId: winnerId,        
+      winningTicketId: winningTicketId  
+    });
+  
     await db.collection("mail").add({
       to: winnerEmail,
       message: {
         subject: `¡Felicidades, ganaste la rifa "${productData?.name}"!`,
-        html: `
-          <h1>¡Ganaste!</h1>
-          <p>Nos complace informarte que tu boleto ha sido seleccionado como el ganador de la rifa para el producto: <strong>${productData?.name}</strong>.</p>
-          <p>Pronto nos pondremos en contacto contigo para coordinar la entrega del premio.</p>
-          <p>¡Gracias por participar!</p>
-        `,
+        html: `<h1>¡Ganaste!</h1><p>Tu boleto <strong>${winningTicketId}</strong> ha sido seleccionado como el ganador.</p>`,
       },
     });
 
-    return { success: true, message: `Sorteo realizado. El ganador es ${winnerEmail}.` };
+    return { success: true, message: `Sorteo realizado. Ganador: ${winnerDisplayName} (Boleto: ${winningTicketId}).` };
 
   } catch (error) {
     console.error("Error al realizar el sorteo:", error);
-    if (error instanceof functions.https.HttpsError) {
-      throw error;
-    }
-    throw new functions.https.HttpsError("internal", "Ocurrió un error inesperado durante el sorteo.");
+    if (error instanceof functions.https.HttpsError) throw error;
+    throw new functions.https.HttpsError("internal", "Ocurrió un error inesperado.");
   }
 });

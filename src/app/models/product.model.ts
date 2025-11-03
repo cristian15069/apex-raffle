@@ -12,4 +12,6 @@ export interface Product {
     adminId: string;
     createdAt: any; 
      winnerId?: string;
+     winningTicketId?: string;
+     winnerName?: string;
   }

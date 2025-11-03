@@ -5,6 +5,8 @@ import { PurchaseService, Purchase } from '../../services/purchase';
 import { ProductService } from '../../services/product';
 import { Product } from '../../models/product.model';
 import { Observable, forkJoin, map, switchMap, of, catchError, tap, take } from 'rxjs';
+import { AuthService } from '../../services/auth';
+import { UserProfile } from '@angular/fire/auth';
 
 interface PurchaseWithProduct extends Purchase {
   productDetails?: Product | undefined;
@@ -19,9 +21,15 @@ interface PurchaseWithProduct extends Purchase {
 export class TicketsComponent implements OnInit {
   private purchaseService = inject(PurchaseService);
   private productService = inject(ProductService);
+  private authService = inject(AuthService);
 
   purchasesWithDetails$!: Observable<PurchaseWithProduct[]>;
   isLoading = true;
+  currentUser$: Observable<UserProfile | null | undefined>;
+
+  constructor() {
+    this.currentUser$ = this.authService.userProfile$; 
+  }
 
   ngOnInit(): void {
     console.log('TicketsComponent: ngOnInit started.');
